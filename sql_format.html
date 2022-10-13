@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SQL gen</title>
+  <link rel="stylesheet" href="/assets/bundle.css"/>
+  <script type="text/javascript" src="/assets/jquery/jquery-3.5.1.min.js"></script>
+  <script type="text/javascript" src="/assets/bundle.js"></script>
+</head>
+<body>
+<div class="container-fluid" style="max-width: 600px;">
+  <div class="d-flex flex-column">
+    <label for="sql">SQL</label>
+     <textarea id="sql" rows="10">
+    </textarea>
+    <label for="params">PARAMS</label>
+    <textarea id="params" rows="10">
+    </textarea>
+    <label for="result">RESULT</label>
+    <textarea id="result" rows="10">
+    </textarea>
+    <button id="genSql" class="mt-3">Gen SQL</button>
+    <button id="copy" class="mt-3">Copy to clipboard</button>
+    <div id="history">
+
+    </div>
+  </div>
+</div>
+
+
+<script type="text/javascript">
+  function onSuccess(data) {
+    $('#result').val(data['result']);
+    var pTag = '<p>' + data['result'] + '</p>';
+    $('#history').append(pTag);
+  }
+
+  $('#copy').click(function () {
+    navigator.clipboard.writeText($('#result').val());
+  })
+
+  $('#genSql').click(function () {
+    var sql = $('#sql').val().trim();
+    var params = $('#params').val().trim();
+
+    var paramsArr = params.split(',');
+
+    sql.match(/\\?/g).map((str, index) => {
+      var param = paramsArr[index];
+      var regExp = /\(([^)]+)\)/;
+      if (param) {
+        var matches = regExp.exec(param);
+        var type = matches[1];
+        param = param.trim().replace(/ *\([^)]*\) */g, "");
+        sql = sql.replace('?', type == 'String' ? '\'' + param + '\'' : param);
+      }
+    });
+
+    $.ajax({
+      url: 'http://sqlformat.org/api/v1/format',
+      type: 'POST',
+      dataType: 'json',
+      crossDomain: true,
+      data: {sql: sql, reindent: 1},
+      success: onSuccess,
+    });
+  })
+
+</script>
+</body>
+
+</html>
